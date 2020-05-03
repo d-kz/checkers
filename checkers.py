@@ -163,16 +163,16 @@ class Checkers:
         available_jumps = []
         for m in range(8):
             for n in range(8):
-                if board[m][n][0] == "c":
+                if board[m][n][0] == "c": # forward
                     if Checkers.check_moves(board, m, n, m + 1, n + 1):
                         available_moves.append([m, n, m + 1, n + 1])
                     if Checkers.check_moves(board, m, n, m + 1, n - 1):
                         available_moves.append([m, n, m + 1, n - 1])
-                    if Checkers.check_jumps(board, m, n, m + 1, n - 1, m + 2, n - 2):
+                    if Checkers.check_jumps(board, m, n, m + 1, n - 1, m + 2, n - 2): # TODO: 'eating'? 
                         available_jumps.append([m, n, m + 2, n - 2])
                     if Checkers.check_jumps(board, m, n, m + 1, n + 1, m + 2, n + 2):
                         available_jumps.append([m, n, m + 2, n + 2])
-                elif board[m][n][0] == "C":
+                elif board[m][n][0] == "C": # both directions
                     if Checkers.check_moves(board, m, n, m + 1, n + 1):
                         available_moves.append([m, n, m + 1, n + 1])
                     if Checkers.check_moves(board, m, n, m + 1, n - 1):
@@ -204,12 +204,15 @@ class Checkers:
             return False
         if new_j > 7 or new_j < 0:
             return False
+        # 
         if board[via_i][via_j] == "---":
             return False
-        if board[via_i][via_j][0] == "C" or board[via_i][via_j][0] == "c":
+        if board[via_i][via_j][0] == "C" or board[via_i][via_j][0] == "c": # 
             return False
-        if board[new_i][new_j] != "---":
+
+        if board[new_i][new_j] != "---": # target needs to be empty
             return False
+
         if board[old_i][old_j] == "---":
             return False
         if board[old_i][old_j][0] == "b" or board[old_i][old_j][0] == "B":
@@ -237,43 +240,66 @@ class Checkers:
         result = 0
         mine = 0
         opp = 0
+        """
+        Example board:
+        0  |--- c01 --- c03 --- c05 --- c07 
+        1  |c10 --- c12 --- c14 --- --- --- 
+        2  |--- --- --- c23 --- --- --- c27 
+        3  |b30 --- --- --- c34 --- --- --- 
+        4  |--- b41 --- c43 --- b45 --- c47 
+        5  |b50 --- b52 --- --- --- b56 --- 
+        6  |--- --- --- --- --- b65 --- b67 
+        7  |b70 --- b72 --- b74 --- b76 --- 
+
+             0   1   2   3   4   5   6   7  
+        """
         for i in range(8):
             for j in range(8):
+                # [0] is for letter of the element. 
                 if board[i][j][0] == "c" or board[i][j][0] == "C":
                     mine += 1
 
+                    # "counting pieces". Queens are 2x.
                     if board[i][j][0] == "c":
                         result += 5
                     if board[i][j][0] == "C":
                         result += 10
-                    if i == 0 or j == 0 or i == 7 or j == 7:
+                    # "border/corner piece" - since they are protected
+                    if i == 0 or j == 0 or i == 7 or j == 7: 
                         result += 7
+                    # if border piece, skip following logic
                     if i + 1 > 7 or j - 1 < 0 or i - 1 < 0 or j + 1 > 7:
                         continue
-                    if (board[i + 1][j - 1][0] == "b" or board[i + 1][j - 1][0] == "B") and board[i - 1][
-                        j + 1] == "---":
+
+                    # "YOUR piece can be eaten": if (next to an enemy piece) & (cell behind you is free)
+                    # TODO: why [0] for one but not the other. What's at board[i][j]?
+                    if (board[i + 1][j - 1][0] == "b" or board[i + 1][j - 1][0] == "B") and board[i - 1][j + 1] == "---":
                         result -= 3
                     if (board[i + 1][j + 1][0] == "b" or board[i + 1][j + 1] == "B") and board[i - 1][j - 1] == "---":
                         result -= 3
+                    # Queen can eat backwards too
                     if board[i - 1][j - 1][0] == "B" and board[i + 1][j + 1] == "---":
                         result -= 3
-
                     if board[i - 1][j + 1][0] == "B" and board[i + 1][j - 1] == "---":
                         result -= 3
-                    if i + 2 > 7 or i - 2 < 0:
+
+                    if i + 2 > 7 or j - 2 < 0:
                         continue
-                    if (board[i + 1][j - 1][0] == "B" or board[i + 1][j - 1][0] == "b") and board[i + 2][
-                        j - 2] == "---":
-                        result += 6
-                    if i + 2 > 7 or j + 2 > 7:
+                    # "ENEMY can be eaten (to-the-left)"
+                    if (board[i + 1][j - 1][0] == "B" or board[i + 1][j - 1][0] == "b") and board[i + 2][j - 2] == "---":
+                        result += 6 # TODO: why you gain 6 if you can eat something, but lose only 3 if you can be eaten?
+                    if i + 2 > 7 or j + 2 > 7: 
                         continue
-                    if (board[i + 1][j + 1][0] == "B" or board[i + 1][j + 1][0] == "b") and board[i + 2][
-                        j + 2] == "---":
+                    # "ENEMY can be eaten (to-the-right)"
+                    if (board[i + 1][j + 1][0] == "B" or board[i + 1][j + 1][0] == "b") and board[i + 2][j + 2] == "---":
                         result += 6
 
-                elif board[i][j][0] == "b" or board[i][j][0] == "B":
+                elif board[i][j][0] == "b" or board[i][j][0] == "B": # TODO: why we dont' do the same for opponent?
                     opp += 1
 
+        # We value pieces above all, so if we ever lose a piece, it's a huge loss. 
+        # Everything else is positional advantage just to differentiate. 
+        # position_heuristic + (piece count difference)*1000.
         return result + (mine - opp) * 1000
 
     @staticmethod
@@ -373,7 +399,7 @@ class Checkers:
             print(ansi_green + "Computer has cornered itself.\nYOU WIN!" + ansi_reset)
             exit()
         new_board = dict[max(dict)].get_board()
-        move = dict[max(dict)].move
+        move = dict[max(dict)].move # TODO: ??
         self.matrix = new_board
         t2 = time.time()
         diff = t2 - t1
