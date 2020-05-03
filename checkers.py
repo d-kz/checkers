@@ -1,6 +1,7 @@
 from copy import deepcopy
 import time
 import math
+import random
 
 ansi_black = "\u001b[30m"
 ansi_red = "\u001b[31m"
@@ -12,6 +13,9 @@ ansi_cyan = "\u001b[36m"
 ansi_white = "\u001b[37m"
 ansi_reset = "\u001b[0m"
 
+
+
+EMPTY_CELL = "---"
 
 class Node:
     def __init__(self, board, move=None, parent=None, value=None):
@@ -71,7 +75,7 @@ class Checkers:
 
         for row in self.matrix:
             for i in range(8):
-                row.append("---")
+                row.append(EMPTY_CELL)
         self.position_computer()
         self.position_player()
 
@@ -157,6 +161,16 @@ class Checkers:
                                     self.player_pieces += 1
                         break
 
+    def count_pieces(self):
+        self.player_pieces = 0
+        self.computer_pieces = 0
+        for m in range(8):
+            for n in range(8):
+                if self.matrix[m][n][0] == "c" or self.matrix[m][n][0] == "C":
+                    self.computer_pieces += 1
+                elif self.matrix[m][n][0] == "b" or self.matrix[m][n][0] == "B":
+                    self.player_pieces += 1
+
     @staticmethod
     def find_available_moves(board, mandatory_jumping):
         available_moves = []
@@ -205,15 +219,15 @@ class Checkers:
         if new_j > 7 or new_j < 0:
             return False
         # 
-        if board[via_i][via_j] == "---":
+        if board[via_i][via_j] == EMPTY_CELL:
             return False
         if board[via_i][via_j][0] == "C" or board[via_i][via_j][0] == "c": # 
             return False
 
-        if board[new_i][new_j] != "---": # target needs to be empty
+        if board[new_i][new_j] != EMPTY_CELL: # target needs to be empty
             return False
 
-        if board[old_i][old_j] == "---":
+        if board[old_i][old_j] == EMPTY_CELL:
             return False
         if board[old_i][old_j][0] == "b" or board[old_i][old_j][0] == "B":
             return False
@@ -226,13 +240,13 @@ class Checkers:
             return False
         if new_j > 7 or new_j < 0:
             return False
-        if board[old_i][old_j] == "---":
+        if board[old_i][old_j] == EMPTY_CELL:
             return False
-        if board[new_i][new_j] != "---":
+        if board[new_i][new_j] != EMPTY_CELL:
             return False
         if board[old_i][old_j][0] == "b" or board[old_i][old_j][0] == "B":
             return False
-        if board[new_i][new_j] == "---":
+        if board[new_i][new_j] == EMPTY_CELL:
             return True
 
     @staticmethod
@@ -253,46 +267,47 @@ class Checkers:
 
              0   1   2   3   4   5   6   7  
         """
+
         for i in range(8):
             for j in range(8):
                 # [0] is for letter of the element. 
                 if board[i][j][0] == "c" or board[i][j][0] == "C":
                     mine += 1
 
-                    # "counting pieces". Queens are 2x.
-                    if board[i][j][0] == "c":
-                        result += 5
-                    if board[i][j][0] == "C":
-                        result += 10
-                    # "border/corner piece" - since they are protected
-                    if i == 0 or j == 0 or i == 7 or j == 7: 
-                        result += 7
-                    # if border piece, skip following logic
-                    if i + 1 > 7 or j - 1 < 0 or i - 1 < 0 or j + 1 > 7:
-                        continue
+                    # # "counting pieces". Queens are 2x.
+                    # if board[i][j][0] == "c":
+                    #     result += 5
+                    # if board[i][j][0] == "C":
+                    #     result += 10
+                    # # "border/corner piece" - since they are protected
+                    # if i == 0 or j == 0 or i == 7 or j == 7: 
+                    #     result += 7
+                    # # if border piece, skip following logic
+                    # if i + 1 > 7 or j - 1 < 0 or i - 1 < 0 or j + 1 > 7:
+                    #     continue
 
-                    # "YOUR piece can be eaten": if (next to an enemy piece) & (cell behind you is free)
-                    # TODO: why [0] for one but not the other. What's at board[i][j]?
-                    if (board[i + 1][j - 1][0] == "b" or board[i + 1][j - 1][0] == "B") and board[i - 1][j + 1] == "---":
-                        result -= 3
-                    if (board[i + 1][j + 1][0] == "b" or board[i + 1][j + 1] == "B") and board[i - 1][j - 1] == "---":
-                        result -= 3
-                    # Queen can eat backwards too
-                    if board[i - 1][j - 1][0] == "B" and board[i + 1][j + 1] == "---":
-                        result -= 3
-                    if board[i - 1][j + 1][0] == "B" and board[i + 1][j - 1] == "---":
-                        result -= 3
+                    # # "YOUR piece can be eaten": if (next to an enemy piece) & (cell behind you is free)
+                    # # TODO: why [0] for one but not the other. What's at board[i][j]?
+                    # if (board[i + 1][j - 1][0] == "b" or board[i + 1][j - 1][0] == "B") and board[i - 1][j + 1] == EMPTY_CELL:
+                    #     result -= 3
+                    # if (board[i + 1][j + 1][0] == "b" or board[i + 1][j + 1] == "B") and board[i - 1][j - 1] == EMPTY_CELL:
+                    #     result -= 3
+                    # # Queen can eat backwards too
+                    # if board[i - 1][j - 1][0] == "B" and board[i + 1][j + 1] == EMPTY_CELL:
+                    #     result -= 3
+                    # if board[i - 1][j + 1][0] == "B" and board[i + 1][j - 1] == EMPTY_CELL:
+                    #     result -= 3
 
-                    if i + 2 > 7 or j - 2 < 0:
-                        continue
-                    # "ENEMY can be eaten (to-the-left)"
-                    if (board[i + 1][j - 1][0] == "B" or board[i + 1][j - 1][0] == "b") and board[i + 2][j - 2] == "---":
-                        result += 6 # TODO: why you gain 6 if you can eat something, but lose only 3 if you can be eaten?
-                    if i + 2 > 7 or j + 2 > 7: 
-                        continue
-                    # "ENEMY can be eaten (to-the-right)"
-                    if (board[i + 1][j + 1][0] == "B" or board[i + 1][j + 1][0] == "b") and board[i + 2][j + 2] == "---":
-                        result += 6
+                    # if i + 2 > 7 or j - 2 < 0:
+                    #     continue
+                    # # "ENEMY can be eaten (to-the-left)"
+                    # if (board[i + 1][j - 1][0] == "B" or board[i + 1][j - 1][0] == "b") and board[i + 2][j - 2] == EMPTY_CELL:
+                    #     result += 6 # TODO: why you gain 6 if you can eat something, but lose only 3 if you can be eaten?
+                    # if i + 2 > 7 or j + 2 > 7: 
+                    #     continue
+                    # # "ENEMY can be eaten (to-the-right)"
+                    # if (board[i + 1][j + 1][0] == "B" or board[i + 1][j + 1][0] == "b") and board[i + 2][j + 2] == EMPTY_CELL:
+                    #     result += 6
 
                 elif board[i][j][0] == "b" or board[i][j][0] == "B": # TODO: why we dont' do the same for opponent?
                     opp += 1
@@ -349,13 +364,13 @@ class Checkers:
             return False
         if new_j > 7 or new_j < 0:
             return False
-        if board[old_i][old_j] == "---":
+        if board[old_i][old_j] == EMPTY_CELL:
             return False
-        if board[new_i][new_j] != "---":
+        if board[new_i][new_j] != EMPTY_CELL:
             return False
         if board[old_i][old_j][0] == "c" or board[old_i][old_j][0] == "C":
             return False
-        if board[new_i][new_j] == "---":
+        if board[new_i][new_j] == EMPTY_CELL:
             return True
 
     @staticmethod
@@ -364,48 +379,69 @@ class Checkers:
             return False
         if new_j > 7 or new_j < 0:
             return False
-        if board[via_i][via_j] == "---":
+        if board[via_i][via_j] == EMPTY_CELL:
             return False
         if board[via_i][via_j][0] == "B" or board[via_i][via_j][0] == "b":
             return False
-        if board[new_i][new_j] != "---":
+        if board[new_i][new_j] != EMPTY_CELL:
             return False
-        if board[old_i][old_j] == "---":
+        if board[old_i][old_j] == EMPTY_CELL:
             return False
         if board[old_i][old_j][0] == "c" or board[old_i][old_j][0] == "C":
             return False
         return True
 
-    def evaluate_states(self):
+    def evaluate_states(self, maximizing_player, depth=4):
+        """
+        return: -1 - "computer" lost, 0 - neutral (game keeps going), 1 - "player" won
+        """
         t1 = time.time()
         current_state = Node(deepcopy(self.matrix))
 
-        first_computer_moves = current_state.get_children(True, self.mandatory_jumping)
+        first_computer_moves = current_state.get_children(maximizing_player, self.mandatory_jumping)
         if len(first_computer_moves) == 0:
             if self.player_pieces > self.computer_pieces:
                 print(
                     ansi_yellow + "Computer has no available moves left, and you have more pieces left.\nYOU WIN!" + ansi_reset)
-                exit()
+                return -1
             else:
                 print(ansi_yellow + "Computer has no available moves left.\nGAME ENDED!" + ansi_reset)
-                exit()
+                return -1
+        # find the most optimal move. Note the switch in maximizing_player's turn. 
         dict = {}
         for i in range(len(first_computer_moves)):
-            child = first_computer_moves[i]
-            value = Checkers.minimax(child.get_board(), 4, -math.inf, math.inf, False, self.mandatory_jumping)
-            dict[value] = child
-
+            value_child = first_computer_moves[i]
+            key_value = Checkers.minimax(value_child.get_board(), depth, -math.inf, math.inf, not(maximizing_player), self.mandatory_jumping)
+            l = dict.get(key_value, [])
+            l.append(value_child)
+            dict[key_value] = l # TODO: why can't update list in-place?
+            # print(l, dict, key_value, value_child)
         if len(dict.keys()) == 0:
             print(ansi_green + "Computer has cornered itself.\nYOU WIN!" + ansi_reset)
-            exit()
-        new_board = dict[max(dict)].get_board()
-        move = dict[max(dict)].move # TODO: ??
+
+        # pick best move from computed options
+        print(dict)
+        best_boards = dict[max(dict)]
+        if len(best_boards) > 1:
+            best_board = random.sample(best_boards, 1)[0]
+        else:
+            best_board = best_boards[0]
+        print(best_board)
+        
+        # import pdb;pdb.set_trace()
+        new_board = best_board.get_board()
+        move = best_board.move # TODO: ??
         self.matrix = new_board
         t2 = time.time()
         diff = t2 - t1
         print("Computer has moved (" + str(move[0]) + "," + str(move[1]) + ") to (" + str(move[2]) + "," + str(
             move[3]) + ").")
         print("It took him " + str(diff) + " seconds.")
+
+        # update pieces count
+        self.count_pieces()
+
+        return 0
 
     @staticmethod
     def minimax(board, depth, alpha, beta, maximizing_player, mandatory_jumping):
@@ -439,20 +475,20 @@ class Checkers:
         i_difference = old_i - new_i
         j_difference = old_j - new_j
         if i_difference == -2 and j_difference == 2:
-            board[old_i + 1][old_j - 1] = "---"
+            board[old_i + 1][old_j - 1] = EMPTY_CELL
 
         elif i_difference == 2 and j_difference == 2:
-            board[old_i - 1][old_j - 1] = "---"
+            board[old_i - 1][old_j - 1] = EMPTY_CELL
 
         elif i_difference == 2 and j_difference == -2:
-            board[old_i - 1][old_j + 1] = "---"
+            board[old_i - 1][old_j + 1] = EMPTY_CELL
 
         elif i_difference == -2 and j_difference == -2:
-            board[old_i + 1][old_j + 1] = "---"
+            board[old_i + 1][old_j + 1] = EMPTY_CELL
 
         if new_i == queen_row:
             letter = big_letter
-        board[old_i][old_j] = "---"
+        board[old_i][old_j] = EMPTY_CELL
         board[new_i][new_j] = letter + str(new_i) + str(new_j)
 
     def play(self):
@@ -462,39 +498,46 @@ class Checkers:
         print("2.You can quit the game at any time by pressing enter.")
         print("3.You can surrender at any time by pressing 's'.")
         print("Now that you've familiarized yourself with the rules, enjoy!")
-        while True:
-            answer = input("\nFirst, we need to know, is jumping mandatory?[Y/n]: ")
-            if answer == "Y":
-                self.mandatory_jumping = True
-                break
-            elif answer == "n":
-                self.mandatory_jumping = False
-                break
-            else:
-                print(ansi_red + "Invalid option!" + ansi_reset)
-        while True:
+        self.mandatory_jumping = True
+        # while True:
+        #     answer = input("\nFirst, we need to know, is jumping mandatory?[Y/n]: ")
+        #     if answer == "Y":
+        #         self.mandatory_jumping = True
+        #         break
+        #     elif answer == "n":
+        #         self.mandatory_jumping = False
+        #         break
+        #     else:
+        #         print(ansi_red + "Invalid option!" + ansi_reset)
+        
+        status = 0
+        while (status == 0):
             self.print_matrix()
-            if self.current_turn is True:
-                print(ansi_cyan + "\nPlayer's turn." + ansi_reset)
-                self.get_player_input()
-            else:
-                print(ansi_cyan + "Computer's turn." + ansi_reset)
-                print("Thinking...")
-                self.evaluate_states()
             if self.player_pieces == 0:
                 self.print_matrix()
                 print(ansi_red + "You have no pieces left.\nYOU LOSE!" + ansi_reset)
-                exit()
+                status = 1
             elif self.computer_pieces == 0:
                 self.print_matrix()
                 print(ansi_green + "Computer has no pieces left.\nYOU WIN!" + ansi_reset)
-                exit()
-            elif self.computer_pieces - self.player_pieces == 7:
-                wish = input("You have 7 pieces fewer than your opponent.Do you want to surrender?")
-                if wish == "" or wish == "yes":
-                    print(ansi_cyan + "Coward." + ansi_reset)
-                    exit()
+                status = -1
+
+            if self.current_turn is True:
+                print(ansi_cyan + "\nPlayer's turn." + ansi_reset)
+                # self.get_player_input()
+                status = self.evaluate_states(maximizing_player=False)
+            else:
+                print(ansi_cyan + "Computer's turn." + ansi_reset)
+                print("Thinking...")
+                status = self.evaluate_states(maximizing_player=True)
+            # elif self.computer_pieces - self.player_pieces == 7:
+            #     wish = input("You have 7 pieces fewer than your opponent.Do you want to surrender?")
+            #     if wish == "" or wish == "yes":
+            #         print(ansi_cyan + "Coward." + ansi_reset)
+            #         exit()
             self.current_turn = not self.current_turn
+
+        print(status)
 
 
 if __name__ == '__main__':
