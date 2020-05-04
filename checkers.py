@@ -391,7 +391,7 @@ class Checkers:
             return False
         return True
 
-    def evaluate_states(self, maximizing_player, depth=4):
+    def evaluate_states(self, maximizing_player, silent, depth=4):
         """
         return: -1 - "computer" lost, 0 - neutral (game keeps going), 1 - "player" won
         """
@@ -407,6 +407,7 @@ class Checkers:
             else:
                 print(ansi_yellow + "Computer has no available moves left.\nGAME ENDED!" + ansi_reset)
                 return -1
+
         # find the most optimal move. Note the switch in maximizing_player's turn. 
         dict = {}
         for i in range(len(first_computer_moves)):
@@ -420,23 +421,28 @@ class Checkers:
             print(ansi_green + "Computer has cornered itself.\nYOU WIN!" + ansi_reset)
 
         # pick best move from computed options
-        print(dict)
-        best_boards = dict[max(dict)]
+        if maximizing_player:
+            best_value = max(dict)
+        else:
+            best_value = min(dict)
+
+        if not silent:
+            copy = [(key, value[0].move) for (key, value) in deepcopy(dict).items()]
+            print(best_value, copy)
+        best_boards = dict[best_value]
+
         if len(best_boards) > 1:
             best_board = random.sample(best_boards, 1)[0]
         else:
-            best_board = best_boards[0]
-        print(best_board)
-        
-        # import pdb;pdb.set_trace()
+            best_board = best_boards[0]        
         new_board = best_board.get_board()
-        move = best_board.move # TODO: ??
+        move = best_board.move 
         self.matrix = new_board
         t2 = time.time()
         diff = t2 - t1
-        print("Computer has moved (" + str(move[0]) + "," + str(move[1]) + ") to (" + str(move[2]) + "," + str(
-            move[3]) + ").")
-        print("It took him " + str(diff) + " seconds.")
+        if not silent:
+            print("Computer has moved (" + str(move[0]) + "," + str(move[1]) + ") to (" + str(move[2]) + "," + str(move[3]) + ").")
+            print("It took him " + str(diff) + " seconds.")
 
         # update pieces count
         self.count_pieces()
@@ -448,7 +454,7 @@ class Checkers:
         if depth == 0:
             return Checkers.calculate_heuristics(board)
         current_state = Node(deepcopy(board))
-        if maximizing_player is True:
+        if maximizing_player:
             max_eval = -math.inf
             for child in current_state.get_children(True, mandatory_jumping):
                 ev = Checkers.minimax(child.get_board(), depth - 1, alpha, beta, False, mandatory_jumping)
@@ -491,13 +497,14 @@ class Checkers:
         board[old_i][old_j] = EMPTY_CELL
         board[new_i][new_j] = letter + str(new_i) + str(new_j)
 
-    def play(self):
-        print(ansi_cyan + "##### WELCOME TO CHECKERS ####" + ansi_reset)
-        print("\nSome basic rules:")
-        print("1.You enter the coordinates in the form i,j.")
-        print("2.You can quit the game at any time by pressing enter.")
-        print("3.You can surrender at any time by pressing 's'.")
-        print("Now that you've familiarized yourself with the rules, enjoy!")
+    def play(self, silent=False, depths=[4,4]):
+        if not silent:
+            print(ansi_cyan + "##### WELCOME TO CHECKERS ####" + ansi_reset)
+            print("\nSome basic rules:")
+            print("1.You enter the coordinates in the form i,j.")
+            print("2.You can quit the game at any time by pressing enter.")
+            print("3.You can surrender at any time by pressing 's'.")
+            print("Now that you've familiarized yourself with the rules, enjoy!")
         self.mandatory_jumping = True
         # while True:
         #     answer = input("\nFirst, we need to know, is jumping mandatory?[Y/n]: ")
@@ -512,7 +519,19 @@ class Checkers:
         
         status = 0
         while (status == 0):
-            self.print_matrix()
+            if not silent:
+                self.print_matrix()
+            if self.current_turn is True:
+                if not silent:
+                    print(ansi_cyan + "\nPlayer's turn." + ansi_reset)
+                # self.get_player_input()
+                status = self.evaluate_states(maximizing_player=False, silent=silent, depth=depths[0])
+            else:
+                if not silent:
+                    print(ansi_cyan + "Computer's turn." + ansi_reset)
+                    print("Thinking...")
+                status = self.evaluate_states(maximizing_player=True, silent=silent, depth=depths[0])
+
             if self.player_pieces == 0:
                 self.print_matrix()
                 print(ansi_red + "You have no pieces left.\nYOU LOSE!" + ansi_reset)
@@ -522,14 +541,13 @@ class Checkers:
                 print(ansi_green + "Computer has no pieces left.\nYOU WIN!" + ansi_reset)
                 status = -1
 
-            if self.current_turn is True:
-                print(ansi_cyan + "\nPlayer's turn." + ansi_reset)
-                # self.get_player_input()
-                status = self.evaluate_states(maximizing_player=False)
-            else:
-                print(ansi_cyan + "Computer's turn." + ansi_reset)
-                print("Thinking...")
-                status = self.evaluate_states(maximizing_player=True)
+            # ENDGAME
+            if (self.player_pieces == 1 and self.computer_pieces >=2):
+                print(ansi_red + "You have 1 piece left, computer has more than 2.\nYOU LOSE!" + ansi_reset)
+                status = -1  
+            if (self.computer_pieces == 1 and self.player_pieces >= 2):
+                print(ansi_red + "Computer has 1 piece left, you have more than 2.\nYOU LOSE!" + ansi_reset)
+                status = 1
             # elif self.computer_pieces - self.player_pieces == 7:
             #     wish = input("You have 7 pieces fewer than your opponent.Do you want to surrender?")
             #     if wish == "" or wish == "yes":
@@ -537,9 +555,51 @@ class Checkers:
             #         exit()
             self.current_turn = not self.current_turn
 
-        print(status)
+        return(status)
+
+
+def run_trials(n, depths):
+    total = 0.0
+    print(n,depths)
+    for i in range(n):
+        checkers = Checkers()
+        status = checkers.play(silent=True, depths=depths)
+        total += status
+    print(total/n)
+
 
 
 if __name__ == '__main__':
-    checkers = Checkers()
-    checkers.play()
+    # run_trials(10, depths=[4,3])
+    run_trials(10, depths=[4,2])
+    # run_trials(10, depths=[4,1])
+
+    # checkers = Checkers()
+    # checkers.play()
+
+"""
+TRIALS:
+Symmetrical heuristic: (piece count), depth: (player=4, computer=4)      
+0.2 (10)
+Symmetrical heuristic: (piece count), depth: (player=4, computer=3)      
+0.4 (10)
+Symmetrical heuristic: (piece count), depth: (player=4, computer=2)      
+0.6 (10)
+-0.4
+Symmetrical heuristic: (piece count), depth: (player=4, computer=1)      
+-0.4 (10) - lolwhat
+-0.2
+Seems like trash results tbh. Possiblity for difference in depth computing imperfect estimates of the opponent, but I've seen weird moves in general. 
+"""
+
+
+
+
+
+
+
+
+
+
+
+
